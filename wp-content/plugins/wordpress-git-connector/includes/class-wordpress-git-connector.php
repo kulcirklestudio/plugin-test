@@ -403,6 +403,9 @@ final class WordPress_Git_Connector
             'C:\\Program Files\\Git\\bin\\git.exe',
             'C:\\Program Files (x86)\\Git\\cmd\\git.exe',
             'C:\\Program Files (x86)\\Git\\bin\\git.exe',
+            '/usr/bin/git',
+            '/usr/local/bin/git',
+            '/opt/homebrew/bin/git',
         ];
 
         foreach ($candidates as $candidate) {
