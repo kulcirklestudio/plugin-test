@@ -1,0 +1,17 @@
+# WordPress runtime files
+wp-config.php
+wp-content/cache/
+wp-content/uploads/
+wp-content/upgrade/
+wp-content/backups/
+
+# Logs and environment files
+*.log
+.env
+.env.*
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
