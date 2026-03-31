@@ -140,6 +140,9 @@ final class WordPress_Git_Connector
                     $result = $this->guard_protected_branch_action($settings, 'push');
                 }
                 if ($result === null) {
+                    $result = $this->guard_uncommitted_changes_before_push($settings);
+                }
+                if ($result === null) {
                     $result = $this->push_with_upstream($settings);
                 }
                 break;
@@ -1107,6 +1110,24 @@ final class WordPress_Git_Connector
             $settings,
             null,
             __('Push completed and upstream branch was configured.', 'wordpress-git-connector')
+        );
+    }
+
+    private function guard_uncommitted_changes_before_push(array $settings): ?array
+    {
+        $statusResult = $this->run_git('status --short', $settings);
+        if (empty($statusResult['success'])) {
+            return $statusResult;
+        }
+
+        $output = trim((string) $statusResult['output']);
+        if ($output === '') {
+            return null;
+        }
+
+        return $this->failure(
+            __('Push blocked because there are uncommitted changes. Stage your files if needed, create a commit, and then push again.', 'wordpress-git-connector'),
+            $output
         );
     }
 
