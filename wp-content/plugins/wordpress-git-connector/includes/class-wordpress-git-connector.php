@@ -575,8 +575,29 @@ final class WordPress_Git_Connector
                             <td><?php echo esc_html($repoInfo['active_branch'] ?: __('Not available', 'wordpress-git-connector')); ?></td>
                         </tr>
                         <tr>
+                            <td><strong><?php esc_html_e('Upstream', 'wordpress-git-connector'); ?></strong></td>
+                            <td><?php echo esc_html($repoInfo['upstream_branch'] ?: __('Not configured', 'wordpress-git-connector')); ?></td>
+                        </tr>
+                        <tr>
+                            <td><strong><?php esc_html_e('Ahead / Behind', 'wordpress-git-connector'); ?></strong></td>
+                            <td><?php echo esc_html($repoInfo['upstream_branch'] ? sprintf('%d ahead, %d behind', (int) $repoInfo['ahead_by'], (int) $repoInfo['behind_by']) : __('Not available', 'wordpress-git-connector')); ?></td>
+                        </tr>
+                        <tr>
                             <td><strong><?php esc_html_e('Branches', 'wordpress-git-connector'); ?></strong></td>
                             <td><?php echo esc_html($repoInfo['branches'] ? implode(', ', $repoInfo['branches']) : __('None detected', 'wordpress-git-connector')); ?></td>
+                        </tr>
+                        <tr>
+                            <td><strong><?php esc_html_e('Latest Commit', 'wordpress-git-connector'); ?></strong></td>
+                            <td><?php echo esc_html($repoInfo['latest_commit'] ?: __('No commits yet', 'wordpress-git-connector')); ?></td>
+                        </tr>
+                        <tr>
+                            <td><strong><?php esc_html_e('File Status', 'wordpress-git-connector'); ?></strong></td>
+                            <td><?php echo esc_html(sprintf(
+                                '%d staged, %d unstaged, %d untracked',
+                                (int) $repoInfo['status_counts']['staged'],
+                                (int) $repoInfo['status_counts']['unstaged'],
+                                (int) $repoInfo['status_counts']['untracked']
+                            )); ?></td>
                         </tr>
                         </tbody>
                     </table>
@@ -1274,7 +1295,18 @@ JS;
             }
         }
 
-        return $this->run_git('commit -m ' . escapeshellarg($message), $settings, null, __('Commit created successfully.', 'wordpress-git-connector'));
+        $commitResult = $this->run_git('commit -m ' . escapeshellarg($message), $settings, null, __('Commit created successfully.', 'wordpress-git-connector'));
+        if (empty($commitResult['success'])) {
+            return $commitResult;
+        }
+
+        $hashResult = $this->run_git('rev-parse --short HEAD', $settings);
+        if (!empty($hashResult['success'])) {
+            $hash = trim((string) $hashResult['output']);
+            $commitResult['output'] = trim($commitResult['output'] . PHP_EOL . 'Commit: ' . $hash);
+        }
+
+        return $commitResult;
     }
 
     private function stage_all_changes(array $settings): array
@@ -1562,6 +1594,15 @@ JS;
             'active_branch' => '',
             'branches' => [],
             'remote_url' => $settings['remote_url'],
+            'upstream_branch' => '',
+            'ahead_by' => 0,
+            'behind_by' => 0,
+            'status_counts' => [
+                'staged' => 0,
+                'unstaged' => 0,
+                'untracked' => 0,
+            ],
+            'latest_commit' => '',
         ];
 
         $path = $settings['local_path'];
@@ -1590,6 +1631,32 @@ JS;
         $remoteResult = $this->run_git('remote get-url origin', $settings);
         if (!empty($remoteResult['success'])) {
             $info['remote_url'] = trim((string) $remoteResult['output']);
+        }
+
+        $upstreamResult = $this->run_git('rev-parse --abbrev-ref --symbolic-full-name @{u}', $settings);
+        if (!empty($upstreamResult['success'])) {
+            $info['upstream_branch'] = trim((string) $upstreamResult['output']);
+        }
+
+        if ($info['upstream_branch'] !== '') {
+            $aheadBehindResult = $this->run_git('rev-list --left-right --count HEAD...@{u}', $settings);
+            if (!empty($aheadBehindResult['success'])) {
+                $parts = preg_split('/\s+/', trim((string) $aheadBehindResult['output']));
+                if (count($parts) >= 2) {
+                    $info['ahead_by'] = (int) $parts[0];
+                    $info['behind_by'] = (int) $parts[1];
+                }
+            }
+        }
+
+        $statusResult = $this->run_git('status --short', $settings);
+        if (!empty($statusResult['success'])) {
+            $info['status_counts'] = $this->get_status_counts((string) $statusResult['output']);
+        }
+
+        $latestCommitResult = $this->run_git('log -1 --pretty=format:%h %s', $settings);
+        if (!empty($latestCommitResult['success'])) {
+            $info['latest_commit'] = trim((string) $latestCommitResult['output']);
         }
 
         return $info;
@@ -1963,6 +2030,38 @@ JS;
         }
 
         return implode(PHP_EOL, $summary);
+    }
+
+    private function get_status_counts(string $statusOutput): array
+    {
+        $counts = [
+            'staged' => 0,
+            'unstaged' => 0,
+            'untracked' => 0,
+        ];
+
+        $lines = preg_split('/\r\n|\r|\n/', $statusOutput);
+        foreach ($lines as $line) {
+            $line = rtrim($line);
+            if ($line === '') {
+                continue;
+            }
+
+            $indexStatus = substr($line, 0, 1);
+            $worktreeStatus = substr($line, 1, 1);
+
+            if ($indexStatus !== ' ' && $indexStatus !== '?') {
+                $counts['staged']++;
+            }
+            if ($worktreeStatus !== ' ' && $worktreeStatus !== '?') {
+                $counts['unstaged']++;
+            }
+            if ($indexStatus === '?' || $worktreeStatus === '?') {
+                $counts['untracked']++;
+            }
+        }
+
+        return $counts;
     }
 
     private function redirect_back(): void
