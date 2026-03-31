@@ -573,6 +573,35 @@ final class WordPress_Git_Connector
                     </div>
 
                     <div class="wgc-panel">
+                        <h2><?php esc_html_e('Backup Files', 'wordpress-git-connector'); ?></h2>
+                        <?php $backupFiles = $this->get_backup_files($settings); ?>
+                        <?php if ($backupFiles): ?>
+                            <table class="widefat striped wgc-summary-table">
+                                <tbody>
+                                    <?php foreach ($backupFiles as $backupFile): ?>
+                                        <tr>
+                                            <td><?php echo esc_html($backupFile['name']); ?></td>
+                                            <td><?php echo esc_html(size_format((int) $backupFile['size'])); ?></td>
+                                            <td>
+                                                <a class="button button-secondary"
+                                                    href="<?php echo esc_url($this->get_backup_download_url($backupFile['path'])); ?>">
+                                                    <?php esc_html_e('Download', 'wordpress-git-connector'); ?>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                            <p class="description">
+                                <?php esc_html_e('Click Download and your browser will handle the destination using the device’s normal download behavior.', 'wordpress-git-connector'); ?>
+                            </p>
+                        <?php else: ?>
+                            <p class="description">
+                                <?php esc_html_e('No backup files have been created yet.', 'wordpress-git-connector'); ?></p>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="wgc-panel">
                         <h2><?php esc_html_e('Recent Activity', 'wordpress-git-connector'); ?></h2>
                         <?php $activityLog = $this->get_activity_log(); ?>
                         <?php if ($activityLog): ?>
@@ -602,36 +631,6 @@ final class WordPress_Git_Connector
                             </p>
                         <?php endif; ?>
                     </div>
-
-                    <div class="wgc-panel">
-                        <h2><?php esc_html_e('Backup Files', 'wordpress-git-connector'); ?></h2>
-                        <?php $backupFiles = $this->get_backup_files($settings); ?>
-                        <?php if ($backupFiles): ?>
-                            <table class="widefat striped wgc-summary-table">
-                                <tbody>
-                                    <?php foreach ($backupFiles as $backupFile): ?>
-                                        <tr>
-                                            <td><?php echo esc_html($backupFile['name']); ?></td>
-                                            <td><?php echo esc_html(size_format((int) $backupFile['size'])); ?></td>
-                                            <td>
-                                                <a class="button button-secondary"
-                                                    href="<?php echo esc_url($this->get_backup_download_url($backupFile['path'])); ?>">
-                                                    <?php esc_html_e('Download', 'wordpress-git-connector'); ?>
-                                                </a>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                            <p class="description">
-                                <?php esc_html_e('Click Download and your browser will handle the destination using the device’s normal download behavior.', 'wordpress-git-connector'); ?>
-                            </p>
-                        <?php else: ?>
-                            <p class="description">
-                                <?php esc_html_e('No backup files have been created yet.', 'wordpress-git-connector'); ?></p>
-                        <?php endif; ?>
-                    </div>
-
                 </aside>
             </div>
         </div>
