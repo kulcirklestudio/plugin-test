@@ -56,6 +56,7 @@ final class WordPress_Git_Connector
             'default_branch' => isset($input['default_branch']) ? sanitize_text_field($input['default_branch']) : 'main',
             'author_name' => isset($input['author_name']) ? sanitize_text_field($input['author_name']) : '',
             'author_email' => isset($input['author_email']) ? sanitize_email($input['author_email']) : '',
+            'allow_direct_main_changes' => !empty($input['allow_direct_main_changes']) ? '1' : '0',
         ];
     }
 
@@ -120,6 +121,9 @@ final class WordPress_Git_Connector
             case 'push':
                 $result = $this->guard_remote_configuration($settings);
                 if ($result === null) {
+                    $result = $this->guard_protected_branch_action($settings, 'push');
+                }
+                if ($result === null) {
                     $result = $this->push_with_upstream($settings);
                 }
                 break;
@@ -131,7 +135,10 @@ final class WordPress_Git_Connector
                 break;
             case 'commit':
                 $message = isset($_POST['commit_message']) ? sanitize_textarea_field(wp_unslash($_POST['commit_message'])) : '';
-                $result = $this->commit_changes($settings, $message);
+                $result = $this->guard_protected_branch_action($settings, 'commit');
+                if ($result === null) {
+                    $result = $this->commit_changes($settings, $message);
+                }
                 break;
             case 'set_remote':
                 $remoteUrl = isset($_POST['remote_url']) ? sanitize_text_field(wp_unslash($_POST['remote_url'])) : '';
@@ -242,18 +249,30 @@ final class WordPress_Git_Connector
                                     <p class="description"><?php esc_html_e('Absolute path to the private SSH key file. Username/password is not required.', 'wordpress-git-connector'); ?></p>
                                 </td>
                             </tr>
-                            <tr>
-                                <th scope="row"><label for="wgc_default_branch"><?php esc_html_e('Default Branch', 'wordpress-git-connector'); ?></label></th>
-                                <td><input name="<?php echo esc_attr(self::OPTION_KEY); ?>[default_branch]" id="wgc_default_branch" type="text" class="regular-text" value="<?php echo esc_attr($settings['default_branch']); ?>"></td>
-                            </tr>
-                            <tr>
-                                <th scope="row"><label for="wgc_author_name"><?php esc_html_e('Commit Author Name', 'wordpress-git-connector'); ?></label></th>
-                                <td><input name="<?php echo esc_attr(self::OPTION_KEY); ?>[author_name]" id="wgc_author_name" type="text" class="regular-text" value="<?php echo esc_attr($settings['author_name']); ?>"></td>
-                            </tr>
-                            <tr>
-                                <th scope="row"><label for="wgc_author_email"><?php esc_html_e('Commit Author Email', 'wordpress-git-connector'); ?></label></th>
-                                <td><input name="<?php echo esc_attr(self::OPTION_KEY); ?>[author_email]" id="wgc_author_email" type="email" class="regular-text" value="<?php echo esc_attr($settings['author_email']); ?>"></td>
-                            </tr>
+                                <tr>
+                                    <th scope="row"><label for="wgc_default_branch"><?php esc_html_e('Default Branch', 'wordpress-git-connector'); ?></label></th>
+                                    <td>
+                                        <input name="<?php echo esc_attr(self::OPTION_KEY); ?>[default_branch]" id="wgc_default_branch" type="text" class="regular-text" value="<?php echo esc_attr($settings['default_branch']); ?>">
+                                        <p class="description"><?php esc_html_e('This is treated as the main protected branch. Users should normally work on another branch and merge into this branch.', 'wordpress-git-connector'); ?></p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row"><label for="wgc_author_name"><?php esc_html_e('Commit Author Name', 'wordpress-git-connector'); ?></label></th>
+                                    <td><input name="<?php echo esc_attr(self::OPTION_KEY); ?>[author_name]" id="wgc_author_name" type="text" class="regular-text" value="<?php echo esc_attr($settings['author_name']); ?>"></td>
+                                </tr>
+                                <tr>
+                                    <th scope="row"><label for="wgc_author_email"><?php esc_html_e('Commit Author Email', 'wordpress-git-connector'); ?></label></th>
+                                    <td><input name="<?php echo esc_attr(self::OPTION_KEY); ?>[author_email]" id="wgc_author_email" type="email" class="regular-text" value="<?php echo esc_attr($settings['author_email']); ?>"></td>
+                                </tr>
+                                <tr>
+                                    <th scope="row"><?php esc_html_e('Direct Main Branch Changes', 'wordpress-git-connector'); ?></th>
+                                    <td>
+                                        <label>
+                                            <input name="<?php echo esc_attr(self::OPTION_KEY); ?>[allow_direct_main_changes]" type="checkbox" value="1" <?php checked($settings['allow_direct_main_changes'], '1'); ?>>
+                                            <?php esc_html_e('Allow direct commit and push actions when the active branch is the configured main branch', 'wordpress-git-connector'); ?>
+                                        </label>
+                                    </td>
+                                </tr>
                             </tbody>
                         </table>
 
@@ -307,8 +326,14 @@ final class WordPress_Git_Connector
                         <?php $this->render_action_card(
                             __('Branch Management', 'wordpress-git-connector'),
                             __('Switch branches, create new ones, merge another branch into the active branch, or delete branches you no longer need.', 'wordpress-git-connector'),
-                            function () use ($repoInfo) { ?>
+                            function () use ($repoInfo, $settings) { ?>
                             <p><strong><?php esc_html_e('Current Active Branch:', 'wordpress-git-connector'); ?></strong> <?php echo esc_html($repoInfo['active_branch'] ?: __('Not available', 'wordpress-git-connector')); ?></p>
+                            <p><strong><?php esc_html_e('Configured Main Branch:', 'wordpress-git-connector'); ?></strong> <?php echo esc_html($settings['default_branch'] ?: __('Not set', 'wordpress-git-connector')); ?></p>
+                            <?php if (!empty($repoInfo['active_branch']) && $repoInfo['active_branch'] === $settings['default_branch'] && $settings['allow_direct_main_changes'] !== '1') : ?>
+                                <p style="padding:10px;border-left:4px solid #d63638;background:#fcf0f1;">
+                                    <?php esc_html_e('Direct commit and push on the main branch are currently blocked. Create or switch to a working branch, then merge it into the main branch.', 'wordpress-git-connector'); ?>
+                                </p>
+                            <?php endif; ?>
 
                             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
                                 <?php wp_nonce_field('wgc_git_action'); ?>
@@ -318,7 +343,9 @@ final class WordPress_Git_Connector
                                     <label for="wgc_active_branch"><strong><?php esc_html_e('Active Branch', 'wordpress-git-connector'); ?></strong></label><br>
                                     <select id="wgc_active_branch" name="active_branch">
                                         <?php foreach ($repoInfo['branches'] as $branch) : ?>
-                                            <option value="<?php echo esc_attr($branch); ?>" <?php selected($repoInfo['active_branch'], $branch); ?>><?php echo esc_html($branch); ?></option>
+                                            <option value="<?php echo esc_attr($branch); ?>" <?php selected($repoInfo['active_branch'], $branch); ?>>
+                                                <?php echo esc_html($branch === $settings['default_branch'] ? $branch . ' (main branch)' : $branch); ?>
+                                            </option>
                                         <?php endforeach; ?>
                                     </select>
                                 </p>
@@ -344,11 +371,13 @@ final class WordPress_Git_Connector
                                     <label for="wgc_source_branch"><strong><?php esc_html_e('Merge Branch Into Active Branch', 'wordpress-git-connector'); ?></strong></label><br>
                                     <select id="wgc_source_branch" name="source_branch">
                                         <?php foreach ($repoInfo['branches'] as $branch) : ?>
-                                            <option value="<?php echo esc_attr($branch); ?>"><?php echo esc_html($branch); ?></option>
+                                            <option value="<?php echo esc_attr($branch); ?>" <?php disabled($branch, $repoInfo['active_branch']); ?>>
+                                                <?php echo esc_html($branch === $settings['default_branch'] ? $branch . ' (main branch)' : $branch); ?>
+                                            </option>
                                         <?php endforeach; ?>
                                     </select>
                                 </p>
-                                <p class="description"><?php esc_html_e('The selected branch will be merged into the currently active branch. If conflicts happen, Git output will be shown below.', 'wordpress-git-connector'); ?></p>
+                                <p class="description"><?php esc_html_e('The selected branch will be merged into the currently active branch. Use this to bring working branch changes into the main branch. If conflicts happen, Git output will be shown below.', 'wordpress-git-connector'); ?></p>
                                 <?php submit_button(__('Merge Into Active Branch', 'wordpress-git-connector'), 'secondary', '', false); ?>
                             </form>
 
@@ -448,6 +477,7 @@ final class WordPress_Git_Connector
             'default_branch' => 'main',
             'author_name' => '',
             'author_email' => '',
+            'allow_direct_main_changes' => '0',
         ];
     }
 
@@ -694,6 +724,31 @@ final class WordPress_Git_Connector
                 __('Merged %1$s into %2$s successfully.', 'wordpress-git-connector'),
                 $sourceBranch,
                 $activeBranch
+            )
+        );
+    }
+
+    private function guard_protected_branch_action(array $settings, string $action): ?array
+    {
+        if (($settings['allow_direct_main_changes'] ?? '0') === '1') {
+            return null;
+        }
+
+        $mainBranch = trim((string) ($settings['default_branch'] ?? 'main'));
+        if ($mainBranch === '') {
+            return null;
+        }
+
+        $activeBranch = $this->get_active_branch_name($settings);
+        if ($activeBranch === '' || $activeBranch !== $mainBranch) {
+            return null;
+        }
+
+        return $this->failure(
+            sprintf(
+                __('Direct %s on the main branch is blocked. Switch to a working branch, make your changes there, and then merge that branch into %s. Enable the checkbox in settings if you want to allow direct main branch changes.', 'wordpress-git-connector'),
+                $action,
+                $mainBranch
             )
         );
     }
