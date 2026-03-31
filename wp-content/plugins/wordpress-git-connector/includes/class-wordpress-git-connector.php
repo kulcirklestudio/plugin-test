@@ -545,6 +545,34 @@ final class WordPress_Git_Connector
 
                 <aside class="wgc-sidebar">
                     <div class="wgc-panel">
+                        <h2><?php esc_html_e('Repository Summary', 'wordpress-git-connector'); ?></h2>
+                        <table class="widefat striped wgc-summary-table">
+                            <tbody>
+                                <tr>
+                                    <td><strong><?php esc_html_e('Local Path', 'wordpress-git-connector'); ?></strong></td>
+                                    <td><?php echo esc_html($settings['local_path'] ?: __('Not configured', 'wordpress-git-connector')); ?>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong><?php esc_html_e('Remote URL', 'wordpress-git-connector'); ?></strong></td>
+                                    <td><?php echo esc_html($repoInfo['remote_url'] ?: __('Not available', 'wordpress-git-connector')); ?>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong><?php esc_html_e('Active Branch', 'wordpress-git-connector'); ?></strong></td>
+                                    <td><?php echo esc_html($repoInfo['active_branch'] ?: __('Not available', 'wordpress-git-connector')); ?>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong><?php esc_html_e('Branches', 'wordpress-git-connector'); ?></strong></td>
+                                    <td><?php echo esc_html($repoInfo['branches'] ? implode(', ', $repoInfo['branches']) : __('None detected', 'wordpress-git-connector')); ?>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="wgc-panel">
                         <h2><?php esc_html_e('Recent Activity', 'wordpress-git-connector'); ?></h2>
                         <?php $activityLog = $this->get_activity_log(); ?>
                         <?php if ($activityLog): ?>
@@ -573,34 +601,6 @@ final class WordPress_Git_Connector
                             <p class="description"><?php esc_html_e('No Git activity recorded yet.', 'wordpress-git-connector'); ?>
                             </p>
                         <?php endif; ?>
-                    </div>
-
-                    <div class="wgc-panel">
-                        <h2><?php esc_html_e('Repository Summary', 'wordpress-git-connector'); ?></h2>
-                        <table class="widefat striped wgc-summary-table">
-                            <tbody>
-                                <tr>
-                                    <td><strong><?php esc_html_e('Local Path', 'wordpress-git-connector'); ?></strong></td>
-                                    <td><?php echo esc_html($settings['local_path'] ?: __('Not configured', 'wordpress-git-connector')); ?>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><strong><?php esc_html_e('Remote URL', 'wordpress-git-connector'); ?></strong></td>
-                                    <td><?php echo esc_html($repoInfo['remote_url'] ?: __('Not available', 'wordpress-git-connector')); ?>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><strong><?php esc_html_e('Active Branch', 'wordpress-git-connector'); ?></strong></td>
-                                    <td><?php echo esc_html($repoInfo['active_branch'] ?: __('Not available', 'wordpress-git-connector')); ?>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><strong><?php esc_html_e('Branches', 'wordpress-git-connector'); ?></strong></td>
-                                    <td><?php echo esc_html($repoInfo['branches'] ? implode(', ', $repoInfo['branches']) : __('None detected', 'wordpress-git-connector')); ?>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
                     </div>
 
                     <div class="wgc-panel">
