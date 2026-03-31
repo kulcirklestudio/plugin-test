@@ -105,6 +105,12 @@ final class WordPress_Git_Connector
                     $result = $this->run_git('fetch --all --prune', $settings);
                 }
                 break;
+            case 'sync_remote_branches':
+                $result = $this->guard_remote_configuration($settings);
+                if ($result === null) {
+                    $result = $this->sync_remote_branches($settings);
+                }
+                break;
             case 'pull':
                 $result = $this->guard_remote_configuration($settings);
                 if ($result === null) {
@@ -134,6 +140,10 @@ final class WordPress_Git_Connector
             case 'create_branch':
                 $branchName = isset($_POST['branch_name']) ? sanitize_text_field(wp_unslash($_POST['branch_name'])) : '';
                 $result = $this->run_git('checkout -b ' . escapeshellarg($branchName), $settings);
+                break;
+            case 'merge_into_active':
+                $sourceBranch = isset($_POST['source_branch']) ? sanitize_text_field(wp_unslash($_POST['source_branch'])) : '';
+                $result = $this->merge_into_active_branch($settings, $sourceBranch);
                 break;
             case 'checkout_branch':
                 $branchName = isset($_POST['active_branch']) ? sanitize_text_field(wp_unslash($_POST['active_branch'])) : '';
@@ -254,7 +264,10 @@ final class WordPress_Git_Connector
 
                     <h2><?php esc_html_e('Repository Actions', 'wordpress-git-connector'); ?></h2>
                     <div style="display:grid;grid-template-columns:repeat(2,minmax(280px,1fr));gap:20px;">
-                        <?php $this->render_action_card(__('Connection', 'wordpress-git-connector'), function () use ($settings) { ?>
+                        <?php $this->render_action_card(
+                            __('Repository Setup', 'wordpress-git-connector'),
+                            __('Use these actions to initialize a new local repository, connect an existing one, or verify the SSH remote connection.', 'wordpress-git-connector'),
+                            function () use ($settings) { ?>
                             <?php $this->render_action_form('initialize_repo', __('Initialize Local Repo', 'wordpress-git-connector')); ?>
                             <?php $this->render_action_form('connect_repo', __('Connect Existing Repo', 'wordpress-git-connector')); ?>
                             <?php $this->render_action_form('clone_repo', __('Clone SSH Repo', 'wordpress-git-connector')); ?>
@@ -263,14 +276,21 @@ final class WordPress_Git_Connector
                             <?php $this->render_remote_update_form($settings['remote_url']); ?>
                         <?php }); ?>
 
-                        <?php $this->render_action_card(__('Sync', 'wordpress-git-connector'), function () { ?>
+                        <?php $this->render_action_card(
+                            __('Sync And Remote', 'wordpress-git-connector'),
+                            __('Fetch updates, import remote branches, pull the active branch, or push your local commits to the remote repository.', 'wordpress-git-connector'),
+                            function () { ?>
                             <?php $this->render_action_form('fetch', __('Fetch', 'wordpress-git-connector')); ?>
+                            <?php $this->render_action_form('sync_remote_branches', __('Import Remote Branches', 'wordpress-git-connector')); ?>
                             <?php $this->render_action_form('pull', __('Pull', 'wordpress-git-connector')); ?>
                             <?php $this->render_action_form('push', __('Push', 'wordpress-git-connector')); ?>
                             <?php $this->render_action_form('status', __('Refresh Status', 'wordpress-git-connector')); ?>
                         <?php }); ?>
 
-                        <?php $this->render_action_card(__('Commit', 'wordpress-git-connector'), function () { ?>
+                        <?php $this->render_action_card(
+                            __('Commit Changes', 'wordpress-git-connector'),
+                            __('Stage modified files first, then create a commit with a message describing the changes.', 'wordpress-git-connector'),
+                            function () { ?>
                             <?php $this->render_action_form('add_all', __('Stage All Changes', 'wordpress-git-connector')); ?>
                             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
                                 <?php wp_nonce_field('wgc_git_action'); ?>
@@ -284,7 +304,12 @@ final class WordPress_Git_Connector
                             </form>
                         <?php }); ?>
 
-                        <?php $this->render_action_card(__('Branches', 'wordpress-git-connector'), function () use ($repoInfo) { ?>
+                        <?php $this->render_action_card(
+                            __('Branch Management', 'wordpress-git-connector'),
+                            __('Switch branches, create new ones, merge another branch into the active branch, or delete branches you no longer need.', 'wordpress-git-connector'),
+                            function () use ($repoInfo) { ?>
+                            <p><strong><?php esc_html_e('Current Active Branch:', 'wordpress-git-connector'); ?></strong> <?php echo esc_html($repoInfo['active_branch'] ?: __('Not available', 'wordpress-git-connector')); ?></p>
+
                             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
                                 <?php wp_nonce_field('wgc_git_action'); ?>
                                 <input type="hidden" name="action" value="wgc_git_action">
@@ -309,6 +334,22 @@ final class WordPress_Git_Connector
                                     <input id="wgc_branch_name" name="branch_name" type="text" class="regular-text" required>
                                 </p>
                                 <?php submit_button(__('Create Branch', 'wordpress-git-connector'), 'secondary', '', false); ?>
+                            </form>
+
+                            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                                <?php wp_nonce_field('wgc_git_action'); ?>
+                                <input type="hidden" name="action" value="wgc_git_action">
+                                <input type="hidden" name="wgc_action" value="merge_into_active">
+                                <p>
+                                    <label for="wgc_source_branch"><strong><?php esc_html_e('Merge Branch Into Active Branch', 'wordpress-git-connector'); ?></strong></label><br>
+                                    <select id="wgc_source_branch" name="source_branch">
+                                        <?php foreach ($repoInfo['branches'] as $branch) : ?>
+                                            <option value="<?php echo esc_attr($branch); ?>"><?php echo esc_html($branch); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </p>
+                                <p class="description"><?php esc_html_e('The selected branch will be merged into the currently active branch. If conflicts happen, Git output will be shown below.', 'wordpress-git-connector'); ?></p>
+                                <?php submit_button(__('Merge Into Active Branch', 'wordpress-git-connector'), 'secondary', '', false); ?>
                             </form>
 
                             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
@@ -356,11 +397,12 @@ final class WordPress_Git_Connector
         <?php
     }
 
-    private function render_action_card(string $title, callable $callback): void
+    private function render_action_card(string $title, string $description, callable $callback): void
     {
         ?>
         <div style="background:#fff;border:1px solid #ccd0d4;padding:16px;">
             <h3 style="margin-top:0;"><?php echo esc_html($title); ?></h3>
+            <p class="description" style="margin-top:-6px;margin-bottom:14px;"><?php echo esc_html($description); ?></p>
             <?php $callback(); ?>
         </div>
         <?php
@@ -569,6 +611,90 @@ final class WordPress_Git_Connector
             $settings,
             null,
             __('All changes staged successfully.', 'wordpress-git-connector')
+        );
+    }
+
+    private function sync_remote_branches(array $settings): array
+    {
+        $fetchResult = $this->run_git('fetch --all --prune', $settings);
+        if (empty($fetchResult['success'])) {
+            return $fetchResult;
+        }
+
+        $remoteResult = $this->run_git('branch -r', $settings);
+        if (empty($remoteResult['success'])) {
+            return $remoteResult;
+        }
+
+        $lines = preg_split('/\r\n|\r|\n/', trim((string) $remoteResult['output']));
+        $created = [];
+
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if ($line === '' || strpos($line, 'origin/HEAD') === 0) {
+                continue;
+            }
+
+            if (strpos($line, 'origin/') !== 0) {
+                continue;
+            }
+
+            $branchName = substr($line, strlen('origin/'));
+            if ($branchName === '') {
+                continue;
+            }
+
+            $existsResult = $this->run_git('show-ref --verify --quiet refs/heads/' . escapeshellarg($branchName), $settings);
+            if (!empty($existsResult['success'])) {
+                continue;
+            }
+
+            $createResult = $this->run_git(
+                'branch --track ' . escapeshellarg($branchName) . ' ' . escapeshellarg('origin/' . $branchName),
+                $settings
+            );
+
+            if (empty($createResult['success'])) {
+                return $createResult;
+            }
+
+            $created[] = $branchName;
+        }
+
+        return [
+            'success' => true,
+            'message' => __('Remote branches imported successfully.', 'wordpress-git-connector'),
+            'output' => $created
+                ? 'Created local tracking branches: ' . implode(', ', $created)
+                : 'All remote branches were already available locally.',
+        ];
+    }
+
+    private function merge_into_active_branch(array $settings, string $sourceBranch): array
+    {
+        $sourceBranch = trim($sourceBranch);
+        if ($sourceBranch === '') {
+            return $this->failure(__('Select a source branch to merge.', 'wordpress-git-connector'));
+        }
+
+        $activeBranch = $this->get_active_branch_name($settings);
+        if ($activeBranch === '') {
+            return $this->failure(__('Could not detect the active branch for merge.', 'wordpress-git-connector'));
+        }
+
+        if ($activeBranch === $sourceBranch) {
+            return $this->failure(__('Choose a different branch. A branch cannot be merged into itself.', 'wordpress-git-connector'));
+        }
+
+        return $this->run_git(
+            'merge --no-edit ' . escapeshellarg($sourceBranch),
+            $settings,
+            null,
+            sprintf(
+                __('Merged %1$s into %2$s successfully.', 'wordpress-git-connector'),
+                $sourceBranch,
+                $activeBranch
+            )
         );
     }
 
