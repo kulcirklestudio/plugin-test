@@ -148,6 +148,24 @@
   gap: 18px;
 }
 
+.wgc-warning-panel {
+  border-color: #d8b4fe;
+  background: linear-gradient(135deg, #ffffff, #faf5ff);
+}
+
+.wgc-warning-list {
+  display: grid;
+  gap: 10px;
+}
+
+.wgc-warning-item {
+  padding: 12px 14px;
+  border-left: 4px solid #8250df;
+  border-radius: 12px;
+  background: #f8f4ff;
+  color: #4c2889;
+}
+
 .wgc-action-card {
   position: relative;
   overflow: hidden;
@@ -196,6 +214,28 @@
 .wgc-stack-form {
   display: grid;
   gap: 12px;
+}
+
+.wgc-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.wgc-suggestion-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.wgc-suggestion-list code {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #f6f8fa;
+  border: 1px solid var(--wgc-border);
+  color: var(--wgc-text-soft);
 }
 
 .wgc-admin input[type="text"],
@@ -251,6 +291,13 @@
   justify-content: center;
 }
 
+.wgc-admin .wgc-secondary-button.is-disabled,
+.wgc-admin .button-secondary[disabled],
+.wgc-admin .button[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .wgc-admin .wgc-secondary-button:hover,
 .wgc-admin .button-secondary:hover {
   background: #eef4fb;
@@ -298,6 +345,42 @@
   border-radius: 12px;
   border-left-color: #cf222e !important;
   background: #fff8f8 !important;
+}
+
+.wgc-inline-warning {
+  padding: 12px 14px;
+  border-left: 4px solid #cf222e;
+  border-radius: 12px;
+  background: #fff8f8;
+}
+
+.wgc-branch-overview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.wgc-branch-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--wgc-border);
+  background: #f6f8fa;
+  font-weight: 600;
+}
+
+.wgc-branch-badge.is-active {
+  background: var(--wgc-accent-soft);
+  color: var(--wgc-accent-dark);
+  border-color: #9cd7ff;
+}
+
+.wgc-branch-badge.is-main {
+  background: var(--wgc-highlight-soft);
+  color: #1a7f37;
+  border-color: #8ddb9b;
 }
 
 .wgc-activity-list {
@@ -358,6 +441,30 @@
   font-size: 12px;
 }
 
+.wgc-log-filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto auto;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.wgc-diagnostics-list {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.wgc-diagnostic-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: start;
+  padding: 10px 12px;
+  border: 1px solid var(--wgc-border);
+  border-radius: 12px;
+  background: var(--wgc-surface-muted);
+}
+
 @media (max-width: 1200px) {
   .wgc-layout {
     grid-template-columns: 1fr;
@@ -368,6 +475,10 @@
   }
 
   .wgc-button-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .wgc-log-filters {
     grid-template-columns: 1fr;
   }
 }
