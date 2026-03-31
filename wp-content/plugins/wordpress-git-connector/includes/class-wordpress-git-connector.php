@@ -567,6 +567,22 @@ final class WordPress_Git_Connector
                             <td><?php echo esc_html($settings['local_path'] ?: __('Not configured', 'wordpress-git-connector')); ?></td>
                         </tr>
                         <tr>
+                            <td><strong><?php esc_html_e('Repo Health', 'wordpress-git-connector'); ?></strong></td>
+                            <td><?php echo esc_html($uiState['has_repo'] ? __('Connected', 'wordpress-git-connector') : __('Not connected', 'wordpress-git-connector')); ?></td>
+                        </tr>
+                        <tr>
+                            <td><strong><?php esc_html_e('Remote Health', 'wordpress-git-connector'); ?></strong></td>
+                            <td><?php echo esc_html($uiState['has_remote'] ? __('Remote configured', 'wordpress-git-connector') : __('Remote missing', 'wordpress-git-connector')); ?></td>
+                        </tr>
+                        <tr>
+                            <td><strong><?php esc_html_e('SSH Health', 'wordpress-git-connector'); ?></strong></td>
+                            <td><?php echo esc_html($uiState['has_ssh_key'] ? __('SSH key ready', 'wordpress-git-connector') : __('SSH key missing or unreadable', 'wordpress-git-connector')); ?></td>
+                        </tr>
+                        <tr>
+                            <td><strong><?php esc_html_e('Working Tree', 'wordpress-git-connector'); ?></strong></td>
+                            <td><?php echo esc_html($uiState['working_tree_dirty'] ? __('Has local changes', 'wordpress-git-connector') : __('Clean', 'wordpress-git-connector')); ?></td>
+                        </tr>
+                        <tr>
                             <td><strong><?php esc_html_e('Remote URL', 'wordpress-git-connector'); ?></strong></td>
                             <td><?php echo esc_html($repoInfo['remote_url'] ?: __('Not available', 'wordpress-git-connector')); ?></td>
                         </tr>
@@ -860,6 +876,33 @@ document.addEventListener('click', function (event) {
     event.stopPropagation();
   }
 });
+
+document.addEventListener('submit', function (event) {
+  var form = event.target;
+  if (!form || !form.matches('form')) {
+    return;
+  }
+  if (form.dataset.wgcSubmitting === '1') {
+    event.preventDefault();
+    return;
+  }
+  form.dataset.wgcSubmitting = '1';
+  window.setTimeout(function () {
+    var buttons = form.querySelectorAll('button, input[type="submit"]');
+    buttons.forEach(function (button) {
+      if (button.disabled) {
+        return;
+      }
+      button.disabled = true;
+      button.classList.add('is-loading');
+      if (button.tagName === 'BUTTON') {
+        button.textContent = 'Working...';
+      } else {
+        button.value = 'Working...';
+      }
+    });
+  }, 0);
+});
 JS;
     }
 
@@ -930,6 +973,7 @@ JS;
             'has_branches' => $hasBranches,
             'has_multiple_branches' => $hasMultipleBranches,
             'has_deletable_branch' => !empty($deletableBranches),
+            'working_tree_dirty' => (($repoInfo['status_counts']['staged'] ?? 0) + ($repoInfo['status_counts']['unstaged'] ?? 0) + ($repoInfo['status_counts']['untracked'] ?? 0)) > 0,
             'warnings' => $warnings,
         ];
     }
@@ -1428,6 +1472,11 @@ JS;
             return $this->failure(__('Enter a branch name to delete.', 'wordpress-git-connector'));
         }
 
+        $mainBranch = trim((string) ($settings['default_branch'] ?? 'main'));
+        if ($mainBranch !== '' && $branchName === $mainBranch) {
+            return $this->failure(__('The configured main branch cannot be deleted from this plugin.', 'wordpress-git-connector'));
+        }
+
         $activeBranch = $this->get_active_branch_name($settings);
         if ($activeBranch !== '' && $activeBranch === $branchName) {
             return $this->failure(__('Switch to a different branch before deleting the active branch.', 'wordpress-git-connector'));
@@ -1709,15 +1758,41 @@ JS;
 
         $upstreamCheck = $this->run_git('rev-parse --abbrev-ref --symbolic-full-name @{u}', $settings);
         if (!empty($upstreamCheck['success'])) {
-            return $this->run_git('push', $settings, null, __('Push completed successfully.', 'wordpress-git-connector'));
+            $pushResult = $this->run_git('push', $settings, null, __('Push completed successfully.', 'wordpress-git-connector'));
+            return $this->decorate_push_result($pushResult, trim((string) $upstreamCheck['output']));
         }
 
-        return $this->run_git(
+        $pushResult = $this->run_git(
             'push --set-upstream origin ' . escapeshellarg($branch),
             $settings,
             null,
             __('Push completed and upstream branch was configured.', 'wordpress-git-connector')
         );
+        return $this->decorate_push_result($pushResult, 'origin/' . $branch);
+    }
+
+    private function decorate_push_result(array $result, string $targetRef): array
+    {
+        if (empty($result['success'])) {
+            return $result;
+        }
+
+        $output = trim((string) ($result['output'] ?? ''));
+        $isUpToDate = $output === '' || stripos($output, 'Everything up-to-date') !== false;
+        $result['message'] = $isUpToDate
+            ? __('Remote is already up to date.', 'wordpress-git-connector')
+            : __('Push completed successfully.', 'wordpress-git-connector');
+
+        $details = [
+            'Target: ' . $targetRef,
+            $isUpToDate ? 'Status: Everything up to date.' : 'Status: Changes pushed.',
+        ];
+        if ($output !== '') {
+            $details[] = $output;
+        }
+        $result['output'] = implode(PHP_EOL, $details);
+
+        return $result;
     }
 
     private function guard_uncommitted_changes_before_push(array $settings): ?array

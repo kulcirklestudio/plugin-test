@@ -298,6 +298,13 @@
   cursor: not-allowed;
 }
 
+.wgc-admin .button.is-loading,
+.wgc-admin .button-secondary.is-loading,
+.wgc-admin .button-primary.is-loading {
+  opacity: 0.8;
+  cursor: wait;
+}
+
 .wgc-admin .wgc-secondary-button:hover,
 .wgc-admin .button-secondary:hover {
   background: #eef4fb;
