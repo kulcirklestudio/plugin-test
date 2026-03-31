@@ -416,9 +416,10 @@ final class WordPress_Git_Connector
                                     <label for="wgc_commit_message"><strong><?php esc_html_e('Commit Message', 'wordpress-git-connector'); ?></strong></label><br>
                                     <textarea id="wgc_commit_message" name="commit_message" rows="4" class="large-text" required></textarea>
                                 </p>
-                                <?php submit_button(__('Commit Changes', 'wordpress-git-connector'), 'secondary', '', false, [
+                                <?php $this->render_submit_button(__('Commit Changes', 'wordpress-git-connector'), [
+                                    'class' => 'secondary',
                                     'disabled' => !$uiState['has_repo'],
-                                    'data-confirm' => __('Create a new commit with the staged changes?', 'wordpress-git-connector'),
+                                    'confirm' => __('Create a new commit with the staged changes?', 'wordpress-git-connector'),
                                 ]); ?>
                             </form>
                         <?php }); ?>
@@ -448,9 +449,10 @@ final class WordPress_Git_Connector
                                         <?php $this->render_branch_options($repoInfo['branches'], $settings['default_branch'], $repoInfo['active_branch']); ?>
                                     </select>
                                 </p>
-                                <?php submit_button(__('Switch Branch', 'wordpress-git-connector'), 'secondary', '', false, [
+                                <?php $this->render_submit_button(__('Switch Branch', 'wordpress-git-connector'), [
+                                    'class' => 'secondary',
                                     'disabled' => !$uiState['has_branches'],
-                                    'data-confirm' => __('Switch to the selected branch now?', 'wordpress-git-connector'),
+                                    'confirm' => __('Switch to the selected branch now?', 'wordpress-git-connector'),
                                 ]); ?>
                             </form>
 
@@ -462,7 +464,8 @@ final class WordPress_Git_Connector
                                     <label for="wgc_branch_name"><strong><?php esc_html_e('New Branch Name', 'wordpress-git-connector'); ?></strong></label><br>
                                     <input id="wgc_branch_name" name="branch_name" type="text" class="regular-text" required>
                                 </p>
-                                <?php submit_button(__('Create Branch', 'wordpress-git-connector'), 'secondary', '', false, [
+                                <?php $this->render_submit_button(__('Create Branch', 'wordpress-git-connector'), [
+                                    'class' => 'secondary',
                                     'disabled' => !$uiState['has_repo'],
                                 ]); ?>
                             </form>
@@ -478,9 +481,10 @@ final class WordPress_Git_Connector
                                     </select>
                                 </p>
                                 <p class="description"><?php esc_html_e('The selected branch will be merged into the currently active branch. Use this to bring working branch changes into the main branch. If conflicts happen, Git output will be shown below.', 'wordpress-git-connector'); ?></p>
-                                <?php submit_button(__('Merge Into Active Branch', 'wordpress-git-connector'), 'secondary', '', false, [
+                                <?php $this->render_submit_button(__('Merge Into Active Branch', 'wordpress-git-connector'), [
+                                    'class' => 'secondary',
                                     'disabled' => !$uiState['has_multiple_branches'],
-                                    'data-confirm' => __('Merge the selected branch into the active branch?', 'wordpress-git-connector'),
+                                    'confirm' => __('Merge the selected branch into the active branch?', 'wordpress-git-connector'),
                                 ]); ?>
                             </form>
 
@@ -513,9 +517,10 @@ final class WordPress_Git_Connector
                                     </label>
                                 </p>
                                 <p class="description"><?php esc_html_e('The active branch cannot be deleted. If backup is enabled, a branch named backup/<branch>-YYYYmmdd-HHMMSS will be created first.', 'wordpress-git-connector'); ?></p>
-                                <?php submit_button(__('Delete Branch', 'wordpress-git-connector'), 'delete', '', false, [
+                                <?php $this->render_submit_button(__('Delete Branch', 'wordpress-git-connector'), [
+                                    'class' => 'delete',
                                     'disabled' => !$uiState['has_deletable_branch'],
-                                    'data-confirm' => __('Delete the selected branch? This cannot be undone unless you create a backup.', 'wordpress-git-connector'),
+                                    'confirm' => __('Delete the selected branch? This cannot be undone unless you create a backup.', 'wordpress-git-connector'),
                                 ]); ?>
                             </form>
                         <?php }); ?>
@@ -534,7 +539,8 @@ final class WordPress_Git_Connector
                                     <textarea id="wgc_gitignore_contents" name="gitignore_contents" rows="12" class="large-text code"><?php echo esc_textarea($gitignoreContents); ?></textarea>
                                 </p>
                                 <div class="wgc-inline-actions">
-                                    <?php submit_button(__('Save .gitignore', 'wordpress-git-connector'), 'secondary', '', false, [
+                                    <?php $this->render_submit_button(__('Save .gitignore', 'wordpress-git-connector'), [
+                                        'class' => 'secondary',
                                         'disabled' => !$uiState['path_exists'],
                                     ]); ?>
                                     <button type="submit" class="button button-secondary wgc-secondary-button" name="wgc_action" value="apply_gitignore_suggestions" <?php disabled(!$uiState['path_exists']); ?>>
@@ -620,8 +626,9 @@ final class WordPress_Git_Connector
                         <?php wp_nonce_field('wgc_git_action'); ?>
                         <input type="hidden" name="action" value="wgc_git_action">
                         <input type="hidden" name="wgc_action" value="run_diagnostics">
-                        <?php submit_button(__('Run Full Diagnostics', 'wordpress-git-connector'), 'secondary', '', false, [
-                            'data-confirm' => __('Run the environment diagnostics and test the GitHub SSH handshake now?', 'wordpress-git-connector'),
+                        <?php $this->render_submit_button(__('Run Full Diagnostics', 'wordpress-git-connector'), [
+                            'class' => 'secondary',
+                            'confirm' => __('Run the environment diagnostics and test the GitHub SSH handshake now?', 'wordpress-git-connector'),
                         ]); ?>
                     </form>
                     </div>
@@ -743,6 +750,21 @@ final class WordPress_Git_Connector
             </option>
             <?php
         }
+    }
+
+    private function render_submit_button(string $label, array $options = []): void
+    {
+        $classes = $options['class'] ?? 'secondary';
+        $attributes = [];
+
+        if (!empty($options['disabled'])) {
+            $attributes['disabled'] = 'disabled';
+        }
+        if (!empty($options['confirm'])) {
+            $attributes['data-confirm'] = $options['confirm'];
+        }
+
+        submit_button($label, $classes, '', false, $attributes);
     }
 
     private function render_remote_update_form(string $remoteUrl): void
