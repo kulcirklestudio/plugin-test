@@ -398,35 +398,52 @@ final class WordPress_Git_Connector
 
     private function detect_git_binary(): string
     {
-        $candidates = [
-            'C:\\Program Files\\Git\\cmd\\git.exe',
-            'C:\\Program Files\\Git\\bin\\git.exe',
-            'C:\\Program Files (x86)\\Git\\cmd\\git.exe',
-            'C:\\Program Files (x86)\\Git\\bin\\git.exe',
-            '/usr/bin/git',
-            '/usr/local/bin/git',
-            '/opt/homebrew/bin/git',
-        ];
-
-        foreach ($candidates as $candidate) {
-            if (is_file($candidate)) {
-                return $candidate;
-            }
-        }
-
         $output = [];
         $exitCode = 1;
-        @exec('where git 2>NUL', $output, $exitCode);
+
+        // Detect OS
+        $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
+
+        // 1. Try system PATH first (most reliable)
+        if ($isWindows) {
+            $command = 'where git 2>NUL';
+        } else {
+            $command = 'which git 2>/dev/null';
+        }
+
+        exec($command, $output, $exitCode);
+
         if ($exitCode === 0 && !empty($output)) {
             foreach ($output as $path) {
-                $path = trim((string) $path);
-                if ($path !== '' && is_file($path)) {
+                $path = trim($path);
+                if ($path !== '' && is_executable($path)) {
                     return $path;
                 }
             }
         }
 
-        return '';
+        // 2. Fallback common install paths
+        $candidates = $isWindows
+            ? [
+                'C:\\Program Files\\Git\\cmd\\git.exe',
+                'C:\\Program Files\\Git\\bin\\git.exe',
+                'C:\\Program Files (x86)\\Git\\cmd\\git.exe',
+                'C:\\Program Files (x86)\\Git\\bin\\git.exe',
+            ]
+            : [
+                '/usr/bin/git',
+                '/usr/local/bin/git',
+                '/opt/homebrew/bin/git',
+            ];
+
+        foreach ($candidates as $candidate) {
+            if (is_executable($candidate)) {
+                return $candidate;
+            }
+        }
+
+        // 3. Last fallback: try plain "git" (PATH might still work in proc_open)
+        return 'git';
     }
 
     private function get_ui_state(array $settings, array $repoInfo): array
