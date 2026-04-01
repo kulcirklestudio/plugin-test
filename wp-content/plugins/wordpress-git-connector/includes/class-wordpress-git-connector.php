@@ -72,7 +72,7 @@ final class WordPress_Git_Connector
         $input = is_array($input) ? $input : [];
 
         return [
-            'git_binary' => isset($input['git_binary']) ? $this->sanitize_path($input['git_binary']) : $defaults['git_binary'],
+            'git_binary' => isset($input['git_binary']) ? $this->sanitize_path($input['git_binary']) : '',
             'repo_mode' => isset($input['repo_mode']) && in_array($input['repo_mode'], ['existing', 'clone'], true) ? $input['repo_mode'] : $defaults['repo_mode'],
             'local_path' => isset($input['local_path']) ? $this->sanitize_path($input['local_path']) : '',
             'clone_parent' => isset($input['clone_parent']) ? $this->sanitize_path($input['clone_parent']) : '',
