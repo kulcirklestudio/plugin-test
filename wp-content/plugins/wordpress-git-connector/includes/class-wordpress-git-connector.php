@@ -393,7 +393,7 @@ final class WordPress_Git_Connector
 
     private function sanitize_path(string $path): string
     {
-        return trim(wp_unslash($path));
+        return trim($path);
     }
 
     private function detect_git_binary(): string
