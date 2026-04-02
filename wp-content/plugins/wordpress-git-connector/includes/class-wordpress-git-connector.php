@@ -263,50 +263,50 @@ final class WordPress_Git_Connector
     private function render_action_card(string $title, string $description, string $eyebrow, callable $callback): void
     {
         ?>
-        <div class="wgc-panel wgc-action-card">
-            <div class="wgc-card-eyebrow"><?php echo esc_html($eyebrow); ?></div>
-            <h3><?php echo esc_html($title); ?></h3>
-            <p class="description wgc-card-description"><?php echo esc_html($description); ?></p>
-            <?php $callback(); ?>
-        </div>
-        <?php
+                <div class="wgc-panel wgc-action-card">
+                    <div class="wgc-card-eyebrow"><?php echo esc_html($eyebrow); ?></div>
+                    <h3><?php echo esc_html($title); ?></h3>
+                    <p class="description wgc-card-description"><?php echo esc_html($description); ?></p>
+                    <?php $callback(); ?>
+                </div>
+                <?php
     }
 
     private function render_action_form(string $action, string $label): void
     {
         ?>
-        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="wgc-action-form">
-            <?php wp_nonce_field('wgc_git_action'); ?>
-            <input type="hidden" name="action" value="wgc_git_action">
-            <input type="hidden" name="wgc_action" value="<?php echo esc_attr($action); ?>">
-            <?php submit_button($label, 'secondary wgc-secondary-button', '', false); ?>
-        </form>
-        <?php
+                <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="wgc-action-form">
+                    <?php wp_nonce_field('wgc_git_action'); ?>
+                    <input type="hidden" name="action" value="wgc_git_action">
+                    <input type="hidden" name="wgc_action" value="<?php echo esc_attr($action); ?>">
+                    <?php submit_button($label, 'secondary wgc-secondary-button', '', false); ?>
+                </form>
+                <?php
     }
 
     private function render_action_button_group(array $actions): void
     {
         ?>
-        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="wgc-action-grid-form">
-            <?php wp_nonce_field('wgc_git_action'); ?>
-            <input type="hidden" name="action" value="wgc_git_action">
-            <div class="wgc-button-grid">
-                <?php foreach ($actions as $action) : ?>
-                    <button
-                        type="submit"
-                        class="button button-secondary wgc-secondary-button <?php echo !empty($action['disabled']) ? 'is-disabled' : ''; ?>"
-                        name="wgc_action"
-                        value="<?php echo esc_attr($action['action']); ?>"
-                        <?php disabled(!empty($action['disabled'])); ?>
-                        <?php if (!empty($action['confirm'])) : ?>data-confirm="<?php echo esc_attr($action['confirm']); ?>"<?php endif; ?>
-                        <?php if (!empty($action['disabled_reason'])) : ?>title="<?php echo esc_attr($action['disabled_reason']); ?>"<?php endif; ?>
-                    >
-                        <?php echo esc_html($action['label']); ?>
-                    </button>
-                <?php endforeach; ?>
-            </div>
-        </form>
-        <?php
+                <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="wgc-action-grid-form">
+                    <?php wp_nonce_field('wgc_git_action'); ?>
+                    <input type="hidden" name="action" value="wgc_git_action">
+                    <div class="wgc-button-grid">
+                        <?php foreach ($actions as $action): ?>
+                                <button
+                                    type="submit"
+                                    class="button button-secondary wgc-secondary-button <?php echo !empty($action['disabled']) ? 'is-disabled' : ''; ?>"
+                                    name="wgc_action"
+                                    value="<?php echo esc_attr($action['action']); ?>"
+                                    <?php disabled(!empty($action['disabled'])); ?>
+                                    <?php if (!empty($action['confirm'])): ?>data-confirm="<?php echo esc_attr($action['confirm']); ?>"<?php endif; ?>
+                                    <?php if (!empty($action['disabled_reason'])): ?>title="<?php echo esc_attr($action['disabled_reason']); ?>"<?php endif; ?>
+                                >
+                                    <?php echo esc_html($action['label']); ?>
+                                </button>
+                        <?php endforeach; ?>
+                    </div>
+                </form>
+                <?php
     }
 
     private function render_branch_options(array $branches, string $mainBranch, string $selected = '', string $disabledBranch = ''): void
@@ -316,10 +316,10 @@ final class WordPress_Git_Connector
                 continue;
             }
             ?>
-            <option value="<?php echo esc_attr($branch); ?>" <?php selected($selected, $branch); ?>>
-                <?php echo esc_html($branch === $mainBranch ? $branch . ' (main branch)' : $branch); ?>
-            </option>
-            <?php
+                        <option value="<?php echo esc_attr($branch); ?>" <?php selected($selected, $branch); ?>>
+                            <?php echo esc_html($branch === $mainBranch ? $branch . ' (main branch)' : $branch); ?>
+                        </option>
+                        <?php
         }
     }
 
@@ -341,17 +341,17 @@ final class WordPress_Git_Connector
     private function render_remote_update_form(string $remoteUrl): void
     {
         ?>
-        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="wgc-stack-form">
-            <?php wp_nonce_field('wgc_git_action'); ?>
-            <input type="hidden" name="action" value="wgc_git_action">
-            <input type="hidden" name="wgc_action" value="set_remote">
-            <p>
-                <label for="wgc_remote_update"><strong><?php esc_html_e('Update Remote URL', 'wordpress-git-connector'); ?></strong></label><br>
-                <input id="wgc_remote_update" name="remote_url" type="text" class="regular-text code" value="<?php echo esc_attr($remoteUrl); ?>">
-            </p>
-            <?php submit_button(__('Save Remote', 'wordpress-git-connector'), 'secondary', '', false); ?>
-        </form>
-        <?php
+                <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="wgc-stack-form">
+                    <?php wp_nonce_field('wgc_git_action'); ?>
+                    <input type="hidden" name="action" value="wgc_git_action">
+                    <input type="hidden" name="wgc_action" value="set_remote">
+                    <p>
+                        <label for="wgc_remote_update"><strong><?php esc_html_e('Update Remote URL', 'wordpress-git-connector'); ?></strong></label><br>
+                        <input id="wgc_remote_update" name="remote_url" type="text" class="regular-text code" value="<?php echo esc_attr($remoteUrl); ?>">
+                    </p>
+                    <?php submit_button(__('Save Remote', 'wordpress-git-connector'), 'secondary', '', false); ?>
+                </form>
+                <?php
     }
 
     private function default_settings(): array
@@ -589,8 +589,8 @@ final class WordPress_Git_Connector
         return [
             'success' => $report['ready'],
             'message' => $report['ready']
-                ? __('Environment readiness report completed successfully.', 'wordpress-git-connector')
-                : __('Environment readiness report found issues that should be fixed.', 'wordpress-git-connector'),
+            ? __('Environment readiness report completed successfully.', 'wordpress-git-connector')
+            : __('Environment readiness report found issues that should be fixed.', 'wordpress-git-connector'),
             'output' => implode(PHP_EOL, $lines),
         ];
     }
@@ -942,8 +942,8 @@ final class WordPress_Git_Connector
             'success' => true,
             'message' => __('Remote branches imported successfully.', 'wordpress-git-connector'),
             'output' => $created
-                ? 'Created local tracking branches: ' . implode(', ', $created)
-                : 'All remote branches were already available locally.',
+            ? 'Created local tracking branches: ' . implode(', ', $created)
+            : 'All remote branches were already available locally.',
         ];
     }
 
@@ -1289,9 +1289,7 @@ final class WordPress_Git_Connector
 
         $output = trim((string) ($result['output'] ?? ''));
         $isUpToDate = $output === '' || stripos($output, 'Everything up-to-date') !== false;
-        $result['message'] = $isUpToDate
-            ? __('Remote is already up to date.', 'wordpress-git-connector')
-            : __('Push completed successfully.', 'wordpress-git-connector');
+        $result['message'] = $isUpToDate ? __('Remote is already up to date.', 'wordpress-git-connector') : __('Push completed successfully.', 'wordpress-git-connector');
 
         $details = [
             'Target: ' . $targetRef,
@@ -1478,16 +1476,18 @@ final class WordPress_Git_Connector
     {
         $log = get_option(self::LOG_OPTION_KEY, []);
         if (!is_array($log)) {
-            $log = $log !== '' ? [[
-                'title' => __('Previous Output', 'wordpress-git-connector'),
-                'message' => __('Stored output from an older plugin version.', 'wordpress-git-connector'),
-                'output' => (string) $log,
-                'success' => true,
-                'time' => current_time('mysql'),
-                'meta' => '',
-                'action' => 'legacy',
-                'duration_ms' => 0,
-            ]] : [];
+            $log = $log !== '' ? [
+                [
+                    'title' => __('Previous Output', 'wordpress-git-connector'),
+                    'message' => __('Stored output from an older plugin version.', 'wordpress-git-connector'),
+                    'output' => (string) $log,
+                    'success' => true,
+                    'time' => current_time('mysql'),
+                    'meta' => '',
+                    'action' => 'legacy',
+                    'duration_ms' => 0,
+                ]
+            ] : [];
         }
 
         array_unshift($log, [
